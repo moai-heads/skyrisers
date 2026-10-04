@@ -5,17 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>SKYRISERS — an endless tower sim</title>
 <style>
-  :root{--bg:#0b0d14;--pnl:#151a26;--pnl2:#1d2434;--ln:#2c3549;--tx:#cfd8e8;--dim:#7b8aa3;--ac:#4fd6c1;--ac2:#ffb347;--bad:#ff6b6b;--good:#7ee787}
+  :root{--bg:#0b0d14;--pnl:#151a26e6;--pnl2:#1d2434;--ln:#2c3549;--tx:#cfd8e8;--dim:#7b8aa3;--ac:#4fd6c1;--ac2:#ffb347;--bad:#ff6b6b;--good:#7ee787}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);
     font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow:hidden}
-  #wrap{display:flex;height:100%;gap:8px;padding:8px}
-  .panel{background:var(--pnl);border:2px solid var(--ln);border-radius:4px}
-  #left{width:206px;overflow-y:auto;padding:6px}
-  #right{width:216px;padding:6px;display:flex;flex-direction:column;gap:6px;overflow-y:auto}
-  #mid{flex:1;display:flex;align-items:center;justify-content:center;min-width:0}
-  #stage{position:relative;image-rendering:pixelated;box-shadow:0 0 0 2px #000,0 0 40px #000a}
-  canvas{image-rendering:pixelated;display:block;cursor:crosshair}
+  #cv{position:fixed;inset:0;z-index:0;cursor:crosshair}
+  .panel{position:fixed;z-index:5;background:var(--pnl);border:2px solid var(--ln);border-radius:6px;
+     backdrop-filter:blur(6px);box-shadow:0 8px 30px #000a}
+  #left{left:8px;top:46px;bottom:8px;width:214px;overflow-y:auto;padding:8px;transition:transform .18s}
+  #right{right:8px;top:46px;bottom:8px;width:224px;padding:8px;display:flex;flex-direction:column;gap:7px;overflow-y:auto;transition:transform .18s}
+  body.hideL #left{transform:translateX(-240px)}
+  body.hideR #right{transform:translateX(240px)}
+  #topbar{position:fixed;left:8px;top:8px;right:8px;height:32px;z-index:6;display:flex;gap:6px;align-items:center;
+     background:var(--pnl);border:2px solid var(--ln);border-radius:6px;padding:0 8px;backdrop-filter:blur(6px)}
+  #topbar .tg{background:var(--pnl2);border:1px solid var(--ln);color:var(--tx);font:inherit;font-size:10px;padding:3px 7px;cursor:pointer;border-radius:3px}
+  #topbar .tg:hover{border-color:var(--ac)}
+  #topbar .sp{flex:1}
+  #topbar .ttl{color:var(--ac);letter-spacing:3px;font-size:12px}
   h1{font-size:13px;margin:2px 0 6px;color:var(--ac);letter-spacing:2px}
   h2{font-size:10px;margin:8px 0 4px;color:var(--dim);letter-spacing:1px;text-transform:uppercase}
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:4px}
@@ -26,7 +32,6 @@
   .b.poor{opacity:.45}
   .b i{display:block;font-style:normal;color:var(--ac2);font-size:9px}
   .b u{text-decoration:none;color:var(--dim);font-size:8px}
-  .row{display:flex;justify-content:space-between;gap:6px}
   .stat{display:flex;justify-content:space-between;border-bottom:1px dotted #2c3549;padding:1px 0}
   .stat b{font-weight:normal;color:var(--dim)}
   .bar{height:7px;background:#0a0d15;border:1px solid var(--ln);margin:2px 0 5px;position:relative;overflow:hidden}
@@ -34,22 +39,37 @@
   #log{font-size:9px;line-height:1.35;overflow-y:auto;flex:1;min-height:60px;background:#0a0d15;border:1px solid var(--ln);padding:3px;padding-right:0}
   #log div{border-bottom:1px dotted #1b2130;padding:1px 0}
   #log .g{color:var(--good)}#log .y{color:var(--ac2)}#log .r{color:var(--bad)}#log .d{color:var(--dim)}
-  #tip{position:absolute;pointer-events:none;background:#05070ceb;border:1px solid var(--ac);padding:3px 5px;
-       font-size:10px;display:none;z-index:9;max-width:180px;white-space:pre-line;border-radius:3px}
+  #tip{position:fixed;pointer-events:none;background:#05070cf0;border:1px solid var(--ac);padding:3px 5px;
+       font-size:11px;display:none;z-index:9;max-width:200px;white-space:pre-line;border-radius:3px;box-shadow:0 4px 16px #000b}
   .big{width:100%;background:#1c3b34;border:1px solid var(--ac);color:#dff;font:inherit;padding:6px;cursor:pointer;border-radius:3px;letter-spacing:1px}
   .big:disabled{opacity:.4;cursor:not-allowed;border-color:var(--ln)}
   .mini{display:flex;gap:3px}
-  .mini button{flex:1;background:var(--pnl2);border:1px solid var(--ln);color:var(--tx);font:inherit;font-size:10px;padding:2px;cursor:pointer;border-radius:2px}
+  .mini button{flex:1;background:var(--pnl2);border:1px solid var(--ln);color:var(--tx);font:inherit;font-size:10px;padding:3px;cursor:pointer;border-radius:2px}
   .mini button.sel{background:#25405a;border-color:var(--ac);color:#fff}
-  #ovl{position:absolute;inset:0;background:#05070ce8;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;z-index:20}
-  #ovl .box{max-width:460px}
-  #ovl h1{font-size:22px;letter-spacing:6px;margin-bottom:8px}
-  kbd{background:#0a0d15;border:1px solid var(--ln);border-bottom-width:2px;padding:0 3px;border-radius:2px;font-size:10px}
-</style>
+  #ovl{position:fixed;inset:0;background:#05070cf0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;z-index:20}
+  #ovl .box{max-width:520px}
+  #ovl h1{font-size:24px;letter-spacing:6px;margin-bottom:8px}
+  kbd{background:#0a0d15;border:1px solid var(--ln);border-bottom-width:2px;padding:0 4px;border-radius:2px;font-size:10px}
+  #hint{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:4;font-size:10px;color:#5b6a83;
+        background:#05070cb0;border:1px solid #1e2534;border-radius:20px;padding:3px 12px;pointer-events:none}
+  body.hide-both #hint{opacity:.35}
+</style></style>
 </head>
 <body>
-<div id="wrap">
-  <div class="panel" id="left">
+<div id="topbar">
+  <span class="ttl">SKYRISERS</span>
+  <button class="tg" id="tgl-l">◧ Build</button>
+  <button class="tg" id="tgl-r">Stats ◨</button>
+  <button class="tg" id="tgl-b">⛶ Clean view</button>
+  <span class="sp"></span>
+  <span class="tg" style="cursor:default">zoom <span id="zval">100%</span></span>
+  <button class="tg" id="z-in">＋</button>
+  <button class="tg" id="z-out">－</button>
+</div>
+<canvas id="cv"></canvas>
+<div id="tip"></div>
+<div id="hint">drag with right/middle mouse or WASD to pan · wheel to zoom · F fit · T follow top</div>
+<div class="panel" id="left">
     <h1>SKYRISERS</h1>
     <div id="palette" class="grid"></div>
     <h2>Tools</h2>
@@ -63,19 +83,12 @@
       A room only fills if it can <b style="color:var(--tx)">reach the Lobby</b> by stairs/elevator
       <b style="color:var(--tx)">in the same column</b>.<br>
       Amenities boost neighbours.<br>
-      Grid supply is tiny — build <span style="color:var(--ac2)">Generators</span>.
+      Grid supply is tiny — build <span style="color:var(--ac2)">Generators</span>.<br>Basements (<span style="color:#c58af9">B1/B2</span>) are dug for free — Storage & power live down there.<br><b style="color:var(--tx)">WIDEN ▶</b> buys 2 more bays of land on the right.
     </div>
   </div>
 
-  <div id="mid">
-    <div id="stage">
-      <canvas id="cv" width="276" height="272"></canvas>
-      <div id="tip"></div>
-      <div id="ovl"><div class="box" id="ovlbox"></div></div>
-    </div>
-  </div>
-
-  <div class="panel" id="right">
+<div id="ovl" style="display:none"><div class="box" id="ovlbox"></div></div>
+<div class="panel" id="right">
     <div>
       <div class="stat"><b>Funds</b><span id="s-money">$0</span></div>
       <div class="stat"><b>Income/s</b><span id="s-inc" style="color:var(--good)">0</span></div>
@@ -102,6 +115,7 @@
       <div style="font-size:9px;color:var(--dim)">residents / workers / guests</div>
     </div>
     <button class="big" id="expand">BUILD UP ▲</button>
+    <button class="big" id="side" style="background:#2a2740;border-color:#c58af9">WIDEN ▶</button>
     <div class="mini" style="margin-top:4px">
       <button id="p-pause">❚❚</button><button id="p-1" class="sel">1×</button>
       <button id="p-2">2×</button><button id="p-4">4×</button>
@@ -111,13 +125,12 @@
     </div>
     <h2>Event log</h2>
     <div id="log"></div>
-  </div>
 </div>
 <script>
 "use strict";
 /* ================= geometry ================= */
-const COLS=8, CW=32, CH=16, GUT=12, VIEW=16;   // VIEW floors visible
-const W=GUT+COLS*CW, H=VIEW*CH;
+const BASE=2, CW=32, CH=16, GUT=14;   // BASE = number of basement floors
+let COLS=8, VIEW=18, W=GUT+COLS*CW, H=VIEW*CH;
 
 /* ================= building defs ================= */
 const T={
@@ -131,62 +144,65 @@ const T={
  diner:   {n:"Diner",    cost:560, cap:2,  rent:1.05,up:.45, power:1, tag:"com", amen:1, key:"7", d:"Neighbours eat here (+happiness)."},
  park:    {n:"Sky Park", cost:420, amen:2, up:.10, key:"8", d:"Big happiness boost for the whole floor."},
  gym:     {n:"Gym",      cost:470, amen:2, up:.12, power:1, key:"9", d:"Neighbours feel fit. Unlocks phase II hype."},
+  storage: {n:"Storage",   cost:180, up:.05, key:"v", d:"Bare basement room. No power, no tenants, no complaints."},
  arcade:  {n:"Arcade",   cost:500, amen:2, up:.15, power:1, key:"0", d:"Neighbours party. Mostly good."},
  gen:     {n:"Generator",cost:280, gen:6, up:.20, key:"g", d:"+6 power. Grid only supplies 2."},
 };
-const ORDER=["stairs","elevator","condo","office","hotel","shop","diner","park","gym","arcade","gen"];
+const ORDER=["stairs","elevator","condo","office","hotel","shop","diner","park","gym","arcade","gen","storage"];
+const MAXW=24;
 
 /* ================= state ================= */
 let S;
 function newGame(){
   S={
-    floors:[], money:2500, score:0, t:0, speed:1, paused:false, over:null,
+    floors:[], width:8, money:2500, score:0, t:0, speed:1, paused:false, over:null,
     demand:{res:1,com:1,tic:1}, broken:{}, dt:0, evT:14, walkers:[], msgs:[],
-    tool:"stairs", cam:0, hover:null, shake:0, hype:0, hist:[], startFloors:1
+    tool:"stairs", hover:null, shake:0, hype:0, hist:[],
+    camX:(GUT+8*CW)/2, camY:0.6*CH, zoom:2, follow:true
   };
-  for(let y=0;y<1;y++) addFloor();
-  // lobby occupies columns 0-1 of floor 0
-  S.floors[0].c[0].t="lobby"; S.floors[0].c[1].t="lobby";
-  S.floors[0].c[0].locked=true; S.floors[0].c[1].locked=true;
-  S.floors[0].c[3].t="stairs"; S.floors[0].c[3].occ=1;
-  S.floors[0].c[6].t="elevator"; S.floors[0].c[6].occ=1;
-  log("City approved the permit. Build up!", "g");
-  log("Tip: columns must line up — stairs under stairs.");
+  for(let i=0;i<=BASE;i++) addFloor();          // B1, B2 then ground floor G
+  const g=F(0);
+  g.c[0].t="lobby"; g.c[1].t="lobby"; g.c[0].locked=true; g.c[1].locked=true;
+  g.c[3].t="stairs"; g.c[3].occ=1;
+  g.c[6].t="elevator"; g.c[6].occ=1;
+  log("Permit approved. The site is cleared and you are standing on dirt.", "g");
+  log("Tip: transport must line up vertically. Stairs under stairs.");
 }
-function addFloor(){ S.floors.push({c:Array.from({length:COLS},()=>({t:"empty",occ:0,sat:50,on:false}))}); }
-const topY=()=>S.floors.length-1;
+const F=y=>S.floors[y+BASE], NL=()=>S.floors.length;
+function addFloor(){ S.floors.push({c:Array.from({length:S.width},()=>({t:"empty",occ:0,sat:50,on:false}))}); }
+const topY=()=>NL()-1-BASE;
 const def=t=>T[t]||{};
 
 /* ================= economy ================= */
-function heightMult(y){ return 1+y*0.09; }
+function heightMult(y){ return Math.max(0.4,1+(y>0?y*0.09:0.12*y)); }
 function expandCost(){ return Math.round(600*Math.pow(1.33,topY())); }
 function floorFill(y){
   let s=0,n=0;
-  for(const c of S.floors[y].c){ const d=def(c.t); if(!d.cap){continue;} s+=c.occ/d.cap; n++; }
+  for(const c of F(y).c){ const d=def(c.t); if(!d.cap){continue;} s+=c.occ/d.cap; n++; }
   return n?s/n:0;
 }
 
 /* access: which floors can reach the lobby */
 function computeAccess(){
-  const acc=new Set(); const tr=f=>S.floors[f].c.filter(c=>def(c.t).transport);
-  if(tr(0).length) acc.add(0);
-  for(let y=1;y<S.floors.length;y++){
-    const below=S.floors[y-1].c, cur=S.floors[y].c;
-    for(let x=0;x<COLS;x++)
+  const acc=new Set(); const tr=f=>F(f).c.filter(c=>def(c.t).transport);
+  if(tr(BASE).length) acc.add(BASE);
+  for(let y=BASE+1;y<=topY();y++){
+    const below=F(y-1).c, cur=F(y).c;
+    for(let x=0;x<S.width;x++)
       if(def(below[x].t).transport && def(cur[x].t).transport){ acc.add(y); break; }
   }
   return acc;
 }
 function floorShaft(x){ // contiguous elevator run from lobby
   const sh={x,floors:[0],carY:0,tgt:0,wait:1.2};
-  for(let y=1;y<S.floors.length;y++){
-    if(S.floors[y].c[x].t==="elevator" && S.floors[y-1].c[x].t==="elevator") sh.floors.push(y);
+  for(let y=BASE+1;y<=topY();y++){
+    if(F(y).c[x].t==="elevator" && F(y-1).c[x].t==="elevator") sh.floors.push(y);
     else break;
   }
   return sh.floors.length>1?sh:null;
 }
 function transportX(y){
-  const a=[]; for(let x=0;x<COLS;x++) if(def(S.floors[y].c[x].t).transport) a.push(x);
+  const a=[]; for(let x=0;x<S.width;x++) if(def(F(y).c[x].t).transport) a.push(x);
   return a;
 }
 
@@ -200,21 +216,21 @@ function step(dt){
   for(const f of S.floors) for(const c of f.c){ const d=def(c.t); if(d.gen&&c.t!=="empty")gen+=d.gen; if(c.t!=="empty")use+=d.power||0; }
   // shed load from the TOP down: high floors brown out first
   let budget=gen; let dark=0;
-  for(let y=S.floors.length-1;y>=0;y--){
-    let du=0; for(const c of S.floors[y].c) if(c.t!=="empty")du+=def(c.t).power||0;
+  for(let y=topY();y>=BASE;y--){
+    let du=0; for(const c of F(y).c) if(c.t!=="empty")du+=def(c.t).power||0;
     const lit = du<=budget;
     if(lit) budget-=du; else dark++;
-    for(const c of S.floors[y].c) c.on = (c.t==="empty"||c.t==="lobby"||c.t==="stairs") ? true : lit;
+    for(const c of F(y).c) c.on = (c.t==="empty"||c.t==="lobby"||c.t==="stairs") ? true : lit;
   }
   S.power={gen,use,dark};
 
   let inc=0, exp=0, satSum=0, satN=0, pop={res:0,com:0,tic:0};
 
-  for(let y=0;y<S.floors.length;y++){
+  for(let y=BASE;y<=topY();y++){
     const tx=transportX(y);
     const has=acc.has(y)&&tx.length>0;
-    for(let x=0;x<COLS;x++){
-      const c=S.floors[y].c[x], d=def(c.t);
+    for(let x=0;x<S.width;x++){
+      const c=F(y).c[x], d=def(c.t);
       if(c.t==="empty"||c.t==="lobby"){ c.occ=0; continue; }
       exp+=d.up||0;
       // happiness of this cell
@@ -223,8 +239,8 @@ function step(dt){
       if(has) s+=12;
       if(tx.some(t=>Math.abs(t-x)<=2)) s+=10;
       for(const nx of [x-1,x+1]){
-        if(nx<0||nx>=COLS)continue;
-        const nd=def(S.floors[y].c[nx].t); if(nd.amen) s+=7*nd.amen;
+        if(nx<0||nx>=S.width)continue;
+        const nd=def(F(y).c[nx].t); if(nd.amen) s+=7*nd.amen;
       }
       if(d.amen) s+=2;
       s+=(S.hype>0?6:0);
@@ -248,7 +264,7 @@ function step(dt){
   S.income=inc; S.upkeep=exp;
   if(S.money<0){ S.money=0; endGame("BANKRUPT","Your creditors froze your accounts. The tower is on the market."); }
   S.hist.push(S.money); if(S.hist.length>160)S.hist.shift();
-  S.score=Math.max(S.score, Math.round(Math.round(S.money)+S.sat*40+Object.values(pop).reduce((a,b)=>a+b,0)*12+S.floors.length*1500));
+  S.score=Math.max(S.score, Math.round(Math.round(S.money)+S.sat*40+Object.values(pop).reduce((a,b)=>a+b,0)*12+NL()*1500));
 
   // demand drifts — the twist: the city changes its mind
   if(Math.random()<dt*0.12){
@@ -283,7 +299,7 @@ function stepWalkers(dt,acc){
   }
   S.walkers=S.walkers.filter(w=>!w.dead);
   if(S.walkers.length<want && Math.random()<0.6){
-    const ys=[]; for(let y=0;y<S.floors.length;y++) if(acc.has(y)&&transportX(y).length) ys.push(y);
+    const ys=[]; for(let y=BASE;y<NL();y++) if(acc.has(y)&&transportX(y).length) ys.push(y);
     if(ys.length){
       const y=ys[Math.floor(Math.random()*ys.length)], tx=transportX(y);
       S.walkers.push({y,x:tx[Math.floor(Math.random()*tx.length)]*CW+2+CW*0.4,vx:(Math.random()<.5?-1:1)*6,
@@ -293,10 +309,10 @@ function stepWalkers(dt,acc){
   }
   // elevators
   S.shafts=[];
-  for(let x=0;x<COLS;x++){ const sh=floorShaft(x); if(sh) S.shafts.push(sh); }
+  for(let x=0;x<S.width;x++){ const sh=floorShaft(x); if(sh) S.shafts.push(sh); }
   for(const sh of S.shafts){
     if(S.broken[sh.x]>S.t){ sh.carY=Math.max(0,sh.carY-dt*3.2); if(sh.carY<0.02){sh.carY=0;sh.wait=.2;} sh.tgt=0; continue; }
-    const down=S.floors[sh.tgt]?S.floors[sh.tgt].c[sh.x].on:false;
+    const down=F(sh.tgt)?F(sh.tgt).c[sh.x].on:false;
     if(sh.wait>0){ sh.wait-=dt; if(sh.wait<=0) sh.tgt=sh.floors[Math.floor(Math.random()*sh.floors.length)]; }
     else if(!down) sh.tgt=0;
     else { const d=sh.tgt-sh.carY; const m=Math.sign(d)*Math.min(Math.abs(d),3.2*dt);
@@ -306,7 +322,7 @@ function stepWalkers(dt,acc){
 
 /* ================= events ================= */
 function event(){
-  const floors=S.floors.length, top=topY();
+  const floors=NL(), top=topY();
   const cost=Math.round(150*Math.pow(1.2,top));
   const R=Math.random();
   if(R<.14 && S.shafts&&S.shafts.length){
@@ -343,8 +359,8 @@ function log(m,c){ S.msgs.unshift({m,c,t:S.t}); if(S.msgs.length>60)S.msgs.pop()
 
 /* ================= building ================= */
 function place(y,x,t){
-  if(x<0||x>=COLS||y<0||y>=S.floors.length) return;
-  const c=S.floors[y].c[x];
+  if(x<0||x>=S.width||y<0||y>=NL()) return;
+  const c=F(y).c[x];
   if(c.locked){ toast("That's part of the lobby."); return; }
   const d=def(t);
   if(c.t===t){ toast("Already there."); return; }
@@ -358,7 +374,7 @@ function place(y,x,t){
   }
 }
 function demolish(y,x){
-  const c=S.floors[y].c[x];
+  const c=F(y).c[x];
   if(c.locked){toast("The lobby stays.");return;}
   if(c.t==="empty"){toast("Nothing there.");return;}
   S.money+=Math.round(def(c.t).cost*0.5); c.t="empty"; c.occ=0; c.sat=50;
@@ -370,20 +386,69 @@ function canExpand(){
 function doExpand(){
   if(!canExpand()){ toast("Need: $"+expandCost()+", 50% full on floor "+fl(topY())+", happiness 40+."); return; }
   S.money-=expandCost(); addFloor();
-  log("▲ Floor "+fl(topY())+" unlocked. Land cost keeps climbing.", "g");
-  S.cam=S.floors.length-VIEW; if(S.cam<0)S.cam=0;
+  log("\u25b2 Floor "+fl(topY())+" unlocked. Land cost keeps climbing.", "g");
+  camClamp();
 }
-const fl=y=>y===0?"G":String(y);
-/* ================= rendering ================= */
+function widenCost(){ return Math.round(900*Math.pow(1.5,S.width-8)); }
+function doWiden(){
+  if(S.width>=MAXW){ toast("The city will not sell you more land."); return; }
+  const c=widenCost(); if(S.money<c){ toast("Widening costs $"+c.toLocaleString()+"."); return; }
+  S.money-=c; S.width+=2; COLS=S.width; W=GUT+S.width*CW;
+  for(const f of S.floors) while(f.c.length<S.width) f.c.push({t:"empty",occ:0,sat:50,on:false});
+  log("\u25b6 Plot widened to "+S.width+" bays. New ground on the right.", "g");
+  camClamp();
+}
+const fl=y=>y===0?"G":y<0?"B"+(-y):String(y);
+
+/* ================= camera + full-screen renderer ================= */
 const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
-ctx.imageSmoothingEnabled=false;
-function R(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(x|0,y|0,w|0,h|0); }
-const PAL={
-  wall:"#2b3550", wall2:"#333f5e", floor:"#171c28", line:"#0c0f17",
-  glass:"#4a6fa5", glow:"#8fd3ff", warm:"#ffce7a"
-};
-function drawCell(t,x,y,occ,sat,on,px,py){
-  // px,py = pixel top-left of cell
+let CWpx=0, CHpx=0, DPR=1;
+function resize(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  CWpx=window.innerWidth; CHpx=window.innerHeight;
+  cv.width=CWpx*DPR; cv.height=CHpx*DPR;
+  cv.style.width=CWpx+"px"; cv.style.height=CHpx+"px";
+}
+addEventListener("resize",resize); resize();
+
+function camClamp(){
+  const z=S.zoom, halfW=CWpx/(2*z), halfH=CHpx/(2*z);
+  const left=GUT-1, right=GUT+S.width*CW+1;
+  const topY0=(topY()+6)*CH, botY0=(-BASE-4)*CH;
+  if(right-left < 2*halfW) S.camX=(left+right)/2;
+  else S.camX=Math.max(left+halfW,Math.min(right-halfW,S.camX));
+  if(topY0-botY0 < 2*halfH) S.camY=(topY0+botY0)/2;
+  else S.camY=Math.max(botY0+halfH,Math.min(topY0-halfH,S.camY));
+}
+function w2sX(wx){ return (wx-S.camX)*S.zoom+CWpx/2; }
+function w2sY(wy){ return (wy-S.camY)*S.zoom+CHpx/2; }
+function s2wX(px){ return (px-CWpx/2)/S.zoom+S.camX; }
+function s2wY(py){ return (py-CHpx/2)/S.zoom+S.camY; }
+function setZoom(z,ax,ay){
+  const wx=s2wX(ax===undefined?CWpx/2:ax), wy=s2wY(ay===undefined?CHpx/2:ay);
+  S.zoom=Math.max(0.6,Math.min(6,z));
+  S.camX=wx-((ax===undefined?CWpx/2:ax)-CWpx/2)/S.zoom;
+  S.camY=wy-((ay===undefined?CHpx/2:ay)-CHpx/2)/S.zoom;
+  S.follow=false; camClamp();
+}
+function fitView(){
+  const z=Math.max(0.6,Math.min(2.2, Math.min(CWpx/(GUT+S.width*CW+40), CHpx/((topY()+7)*CH))));
+  S.zoom=z; S.camX=GUT+S.width*CW/2; S.camY=(topY()+2)*CH; camClamp();
+}
+
+/* --- world-space draw helpers (ctx already transformed) --- */
+function R(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(Math.round(x),Math.round(y),Math.max(1,Math.round(w)),Math.max(1,Math.round(h))); }
+const PAL={wall:"#2b3550",wall2:"#333f5e",floor:"#171c28",line:"#0c0f17",glass:"#4a6fa5",glow:"#8fd3ff",warm:"#ffce7a"};
+function mix(a,b,t){
+  const pa=[parseInt(a.slice(1,3),16),parseInt(a.slice(3,5),16),parseInt(a.slice(5,7),16)];
+  const pb=[parseInt(b.slice(1,3),16),parseInt(b.slice(3,5),16),parseInt(b.slice(5,7),16)];
+  return "rgb("+pa.map((v,i)=>Math.round(v+(pb[i]-v)*t)).join(",")+")";
+}
+function text(txt,px,py,col,size){
+  ctx.fillStyle=col; ctx.font=(size||7)+"px ui-monospace,monospace";
+  ctx.textBaseline="top"; ctx.fillText(txt,px,py);
+}
+function drawCell(t,x,y,occ,sat,on,px,py,ghost){
   const iw=CW-2, ih=CH-2;
   if(t==="empty"){
     R(px,py,iw,ih,"#11151f");
@@ -391,43 +456,39 @@ function drawCell(t,x,y,occ,sat,on,px,py){
     return;
   }
   if(t==="lobby"){
-    R(px,py,iw,ih,"#3a3350");
-    R(px,py+8,iw,2,"#241f33");
-    R(px+3,py+2,10,5,"#c8a06a"); R(px+3,py+2,10,1,"#e8cf9a"); // desk
-    R(px+18,py+2,8,5,"#4b6b8a"); R(px+18,py+2,8,1,"#7fb0e0"); // sofa
-    R(px+27,py+3,1,4,"#3f9e6a");
-    R(px+26,py+1,3,2,"#4fbd7e");
+    R(px,py,iw,ih,"#3a3350"); R(px,py+8,iw,2,"#241f33");
+    R(px+3,py+2,10,5,"#c8a06a"); R(px+3,py+2,10,1,"#e8cf9a");
+    R(px+18,py+2,8,5,"#4b6b8a"); R(px+18,py+2,8,1,"#7fb0e0");
+    R(px+27,py+3,1,4,"#3f9e6a"); R(px+26,py+1,3,2,"#4fbd7e");
     return;
   }
   const d=def(t);
   if(d.transport){
     if(t==="stairs"){
       R(px,py,iw,ih,"#232a3a");
-      for(let s=0;s<5;s++) R(px+2,py+2+s*2,10-s,1,s%2?"#7d8aa5":"#9aa7c2");
-      R(px+14,py+2,1,10,"#4b5570"); R(px+24,py+2,1,10,"#4b5570");
-      R(px+15,py+3,8,8,"#2c3549");
+      for(let q=0;q<5;q++) R(px+2,py+2+q*2,10-q,1,q%2?"#7d8aa5":"#9aa7c2");
+      R(px+14,py+2,1,10,"#4b5570"); R(px+24,py+2,1,10,"#4b5570"); R(px+15,py+3,8,8,"#2c3549");
     } else {
-      R(px,py,iw,ih,"#1b2233");
-      R(px+1,py,2,ih,"#3b4763"); R(px+CW-3,py,2,ih,"#3b4763");
+      R(px,py,iw,ih,"#1b2233"); R(px+1,py,2,ih,"#3b4763"); R(px+CW-3,py,2,ih,"#3b4763");
     }
     return;
   }
   const base = t==="park" ? "#20381f" : t==="gen" ? "#2f3040" : t==="office" ? "#2b3550" : "#33304a";
   R(px,py,iw,ih, on?base:"#232735");
   R(px,py+ih-3,iw,1, on?"#3c4a68":"#2a3145");
-  if(!on){ R(px,py,iw,1,"#3a2b2b"); }
+  if(!on) R(px,py,iw,1,"#3a2b2b");
   switch(t){
     case "condo":
       R(px+3,py+2,11,5,on?"#5b86c4":"#3a4560"); R(px+3,py+2,11,1,"#8fc0ff");
       R(px+18,py+3,10,4,on?"#c9c3b4":"#5b5f6e"); R(px+18,py+3,10,1,"#efe9d8");
-      R(px+6,py+9,1,3,"#8a7a5e"); if(occ>0.2){R(px+20,py+1,1,2,"#d8b48a");R(px+20,py+3,1,2,"#6a7fb8");}
+      R(px+6,py+9,1,3,"#8a7a5e");
+      if(occ>0.2){R(px+20,py+1,1,2,"#d8b48a");R(px+20,py+3,1,2,"#6a7fb8");}
       break;
     case "office":
       for(let r=0;r<2;r++)for(let k=0;k<2;k++){
         const bx=px+3+k*14, by=py+2+r*6;
         R(bx,by,11,4,on?"#8a7f6a":"#4c5060"); R(bx+2,by-2,4,2,on?"#7fe0c0":"#45606a");
-      }
-      break;
+      } break;
     case "hotel":
       R(px+2,py+2,12,6,on?"#e8e2d4":"#6a6e7c"); R(px+2,py+2,12,2,on?"#fff8ea":"#7d8390");
       R(px+17,py+2,12,6,on?"#dcd6c8":"#6a6e7c"); R(px+17,py+2,12,2,on?"#fff8ea":"#7d8390");
@@ -436,21 +497,18 @@ function drawCell(t,x,y,occ,sat,on,px,py){
     case "shop":
       R(px+2,py+2,13,5,on?"#c0b090":"#5b5f6e");
       for(let k=0;k<4;k++) R(px+17+k*3,py+2,2,5,on?["#e05a5a","#e0b35a","#5ad0a0","#5a8ae0"][k]:"#4c5060");
-      R(px+2,py+1,28,1,on?"#e8e2d4":"#6a6e7c");
-      break;
+      R(px+2,py+1,28,1,on?"#e8e2d4":"#6a6e7c"); break;
     case "diner":
       R(px+3,py+4,9,4,on?"#b0483f":"#5b4a52"); R(px+6,py+3,1,2,"#e8d8b0");
-      R(px+19,py+4,9,4,on?"#b0483f":"#5b4a52"); R(px+22,py+3,1,2,"#e8d8b0");
-      break;
+      R(px+19,py+4,9,4,on?"#b0483f":"#5b4a52"); R(px+22,py+3,1,2,"#e8d8b0"); break;
     case "park":
       R(px+4,py+10,2,3,"#6a4f33"); R(px+2,py+4,6,6,on?"#3f9e5a":"#2f5a3a");
       R(px+19,py+10,2,3,"#6a4f33"); R(px+17,py+3,6,7,on?"#4fb56a":"#35603e");
-      R(px+26,py+9,4,3,on?"#a08a5a":"#5a5340");
-      break;
+      R(px+26,py+9,4,3,on?"#a08a5a":"#5a5340"); break;
     case "gym":
       R(px+2,py+8,12,2,on?"#8a8f9c":"#4c5060"); R(px+4,py+5,1,3,"#c8cdd8"); R(px+11,py+5,1,3,"#c8cdd8");
-      R(px+18,py+2,10,8,on?"#3a5a8a":"#3a4a5a"); for(let k=0;k<3;k++)R(px+20,py+3+k*2,6,1,on?PAL.glow:"#4a5a6a");
-      break;
+      R(px+18,py+2,10,8,on?"#3a5a8a":"#3a4a5a");
+      for(let k=0;k<3;k++)R(px+20,py+3+k*2,6,1,on?PAL.glow:"#4a5a6a"); break;
     case "arcade":
       for(let k=0;k<3;k++){ const bx=px+2+k*10;
         R(bx,py+4,8,7,on?"#2a2a3a":"#33333f"); R(bx+1,py+2,6,3,on?["#e05a8a","#5ad0e0","#e0d05a"][k]:"#4a4a55"); }
@@ -458,115 +516,241 @@ function drawCell(t,x,y,occ,sat,on,px,py){
     case "gen":
       R(px+4,py+4,16,7,on?"#4a5060":"#3a3f4a");
       R(px+11,py+6,4,4,on?PAL.glow:"#6a6f7a"); R(px+12,py+5,2,2,on?"#fff":"#777");
-      R(px+22,py+5,6,5,on?"#5a606e":"#3a3f4a");
-      break;
+      R(px+22,py+5,6,5,on?"#5a606e":"#3a3f4a"); break;
+    case "storage":
+      R(px+3,py+3,26,9,on?"#3a3f4c":"#2c3038");
+      for(let k=0;k<4;k++) R(px+4+k*7,py+3,1,9,"#2a2e38"); R(px+3,py+7,26,1,"#2a2e38"); break;
   }
-  // occupancy pips
   if(d.cap){
     const n=Math.round(occ/d.cap*4);
     for(let k=0;k<4;k++) R(px+2+k*7,py+ih-2,5,1,k<n?(sat>55?"#7ee787":sat>32?"#ffb347":"#ff6b6b"):"#333a4a");
   }
   if(d.amen){ const n=Math.min(6,Math.round(occ/Math.max(1,d.cap||2)*6)); for(let k=0;k<n;k++) R(px+3+k*4,py+1,2,2,"#7ee787"); }
 }
-function draw(){
-  const cam=Math.round(S.cam);
-  ctx.clearRect(0,0,W,H);
-  // sky
-  for(let y=0;y<H;y++){ const k=y/H; R(0,y,W,1, mix("#070a12","#1a2b46",Math.pow(k,1.4))); }
-  for(let i=0;i<40;i++){ const sx=(i*97)%W, sy=(i*53)%H; if((i*7)%3) R(sx,sy,1,1,"#2a3550"); }
-  for(let y=0;y<VIEW;y++){
-    const fy=cam+y; if(fy>=S.floors.length) break;
-    const py=y*CH;
-    R(0,py,W,CH,PAL.floor);
-    for(let x=0;x<COLS;x++){
-      const c=S.floors[fy].c[x];
-      drawCell(c.t,fxOf(x),py+1,c.occ,c.sat,c.on,GUT+x*CW,py+1);
+
+/* ---------- sky ---------- */
+let stars=null;
+function drawSky(){
+  const vx0=s2wX(0), vx1=s2wX(CWpx);
+  const t=Math.max(0,Math.min(1,(s2wY(0))/((topY()+8)*CH)));
+  const g=ctx.createLinearGradient(0,0,0,CHpx);
+  g.addColorStop(0,mix("#04060c","#0d1730",t));
+  g.addColorStop(0.6,mix("#0a1020","#1d3050",t));
+  g.addColorStop(1,mix("#16243c","#2a3f63",t));
+  ctx.fillStyle=g; ctx.fillRect(vx0,0,vx1-vx0,CHpx);
+  if(!stars){ stars=[]; for(let i=0;i<260;i++) stars.push([Math.random()*4000-1000,Math.random()*2600-200,Math.random()<.2?"#cfe4ff":"#8fa5c8"]); }
+  for(const s of stars){
+    let wx=s[0]+S.camX*0.25, wy=s[1]+S.camY*0.25;
+    wx=((wx+1200)%4000+4000)%4000-1200; if(wx<vx0-4||wx>vx1+4) continue;
+    if(wy<0||wy>CHpx) continue;
+    R(wx,wy,1,1,s[2]);
+  }
+  if(S.camY < (topY()-6)*CH){ // sun high up
+    const sx=CWpx*0.78, sy=CHpx*0.18;
+    const gr=ctx.createRadialGradient(sx,sy,2,sx,sy,120);
+    gr.addColorStop(0,"#fff3c0cc"); gr.addColorStop(1,"#fff3c000");
+    ctx.fillStyle=gr; ctx.fillRect(sx-130,sy-130,260,260);
+    R(sx-8,sy-8,16,16,"#fff6d0");
+  }
+}
+
+/* ---------- ground / dirt ---------- */
+function drawGround(){
+  const x0=GUT-2, x1=GUT+S.width*CW+2, gy=0;           // ground line = world y 0
+  R(x0-40,gy,x1-x0+80,600,"#3a2c1e");                    // dirt body
+  R(x0-40,gy,x1-x0+80,3,"#4a3a26");                     // topsoil
+  for(let y=gy+4;y<gy+600;y+=4){
+    const shade=(y/4)%2? "#33261a" : "#3d2f20";
+    R(x0-40,y,x1-x0+80,4,shade);
+    for(let i=0;i<14;i++){
+      const px=x0-40+(((i*67)+y*3)%(x1-x0+80));
+      R(px,y+1,2,2,(y/4)%2? "#4b3a26":"#2b2016");
     }
-    R(0,py+CH-1,W,1,PAL.line);
-    // floor label
-    R(0,py, GUT-1, CH-1, "#10141f");
+  }
+  // grass tufts on the lot
+  for(let i=0;i<40;i++){ const px=x0+((i*31)%(x1-x0)); R(px,gy-3,1,3,"#3f7a3a"); R(px+1,gy-2,1,2,"#4f9a46"); }
+  // scaffolding / site fence
+  R(x0-40,gy-8,3,8,"#4a4a52"); R(x1+38,gy-8,3,8,"#4a4a52");
+  // access road
+  R(x0-40,gy+18,x1-x0+80,10,"#20242c");
+  for(let k=0;k<40;k++) R(x0-40+k*18+((S.t*8|0)%18),gy+22,9,1,"#6a6a52");
+}
+
+/* ---------- floors ---------- */
+function drawFloors(){
+  const y0=Math.floor(s2wY(0)/CH)-1, y1=Math.ceil(s2wY(CHpx)/CH)+1;
+  for(let fy=y0;fy<=y1;fy++){
+    if(fy<BASE||fy>topY()) continue;
+    const py=fy*CH, f=F(fy);
+    R(GUT,py,S.width*CW,CH,PAL.floor);
+    for(let x=0;x<S.width;x++){ const c=f.c[x]; drawCell(c.t,x,fy,c.occ,c.sat,c.on,GUT+x*CW,py+1); }
+    R(GUT,py+CH-1,S.width*CW,1,PAL.line);
+    R(GUT,py,S.width*CW,1,"#2c3549");
+    // floor gutter label
+    R(GUT-12,py,11,CH-1,"#10141f");
     const s=fl(fy);
-    for(let i=0;i<s.length;i++) R(3+i*4, py+5, 3,5, fy===0?"#4fd6c1":"#7b8aa3");
-    if(fy>0&&floorFill(fy)>0.02){ const w=Math.round((GUT-4)*Math.min(1,floorFill(fy)));
-      R(3,py+11,w,1,"#4fd6c1"); }
-    // slab shadow
-    R(0,py, W,1,"#2c3549");
+    text(s,GUT-11,py+4, fy===0?"#4fd6c1":fy<0?"#c58af9":"#7b8aa3", 8);
+    if(fy>=0&&floorFill(fy)>0.02){ const w=Math.round(7*Math.min(1,floorFill(fy)));
+      R(GUT-11,py+12,w,1,"#4fd6c1"); }
   }
-  // elevator cars
+  // structural edges
+  R(GUT-1,Math.min(0,s2wY(0)/CH*CH),1,Math.max(0,-(BASE*CH)),"#3a4a68");
+}
+
+/* ---------- entities ---------- */
+function drawEntities(){
   for(const sh of (S.shafts||[])){
-    if(S.broken[sh.x]>S.t){ }
-    const cy=(sh.carY-cam)*CH+1;
-    if(cy<-CH||cy>H) continue;
+    const cy=sh.carY*CH+1;
+    if(cy<s2wY(0)-CH*2||cy>s2wY(CHpx)+CH*2) continue;
     const broken=S.broken[sh.x]>S.t;
-    R(GUT+sh.x*CW+4,cy+1,CW-8,CH-3, broken?"#5a2020":"#5a6a80");
-    R(GUT+sh.x*CW+4,cy+1,CW-8,1, broken?"#8a3030":"#8ea2bd");
-    R(GUT+sh.x*CW+6,cy+3,CW-12,3,"#1b2233");
-    if(broken) R(GUT+sh.x*CW+10,cy+2,2,2,"#ff6b6b");
+    const px=GUT+sh.x*CW+4;
+    R(px,cy+1,CW-8,CH-3, broken?"#5a2020":"#5a6a80");
+    R(px,cy+1,CW-8,1, broken?"#8a3030":"#8ea2bd");
+    R(px+2,cy+3,CW-12,3,"#1b2233");
+    if(broken) R(px+6,cy+2,2,2,"#ff6b6b");
   }
-  // people
   for(const w of S.walkers){
-    const sy=Math.round((w.y-cam)*CH);
-    if(sy<-4||sy>H-2) continue;
-    let sx;
-    if(w.mode==="ride"){ sx=GUT+w.shaft.x*CW+14; const ex=S.floors[Math.round(w.shaft.carY)]; if(ex) { ctx.fillStyle="#7fe0c0"; ctx.fillRect(GUT+w.shaft.x*CW+2,sy+1,CW-4,CH-4); } }
-    else sx=GUT+Math.round(w.x);
-    const yy=sy+2+((Math.round(S.t*4)%2));
-    R(sx,yy+2,2,1,"#1a1a20"); R(sx,yy,2,2,w.c); R(sx,yy-1,2,1,"#e8cfa8");
+    const wy=w.mode==="ride"?w.shaft.carY*CH:w.y*CH;
+    const wyc=(w.mode==="ride"&&Math.abs(w.shaft.carY-w.shaft.tgt)<0.05)?w.shaft.tgt*CH:wy;
+    if(wyc<s2wY(0)-CH||wyc>s2wY(CHpx)+CH) continue;
+    let px;
+    if(w.mode==="ride"){
+      const ex=GUT+w.shaft.x*CW+2;
+      R(ex,wyc+2,CW-4,CH-4,"#7fe0c088"); px=ex+CW/2-1;
+    } else px=GUT+w.x;
+    const yy=wyc+2+((Math.round(S.t*4)%2));
+    R(px,yy+2,2,1,"#1a1a20"); R(px,yy,2,2,w.c); R(px,yy-1,2,1,"#e8cfa8");
   }
-  // hover highlight
-  if(S.hover){
-    const {y,x}=S.hover;
-    if(y>=0&&y<S.floors.length){
-      const sy=(y-cam)*CH;
-      if(sy>=-CH&&sy<=H){
-        const ok = S.tool==="demolish" ? S.floors[y].c[x].t!=="empty"
-          : S.money>=def(S.tool).cost && S.floors[y].c[x].t==="empty";
-        const col = S.tool==="demolish" ? (ok?"#ff6b6b":"#663")
-          : S.tool==="inspect" ? "#4fd6c1" : (ok?"#4fd6c1":"#ff6b6b");
-        ctx.strokeStyle=col; ctx.lineWidth=1;
-        ctx.strokeRect(GUT+x*CW+0.5, sy+0.5, CW-1, CH-1);
-        R(GUT+x*CW,sy+CH-1,CW,1,col);
-        if(S.tool!=="demolish"&&S.tool!=="inspect"){
-          ctx.globalAlpha=.28; ctx.fillStyle=col;
-          ctx.fillRect(GUT+x*CW+1,sy+2,CW-2,CH-4); ctx.globalAlpha=1;
-        }
-      }
-    }
-  }
-  // expand marker on top floor
-  const ty=topY(); if(ty-cam>=0&&ty-cam<VIEW){
-    const sy=(ty-cam)*CH+1;
-    const ok=canExpand();
-    ctx.fillStyle=ok?"#4fd6c1":"#3a4a5a";
-    for(let k=0;k<4;k++){ ctx.fillRect(W-12,sy+3-k*2,5-k,1); ctx.fillRect(W-13+k*2,sy+1-k*2,1,2); }
-  }
-  const streetY=(1-cam)*CH;
-  if(streetY<H+2){ R(0,Math.max(0,streetY-1),W,H,"#14161d");
-    const sy2=Math.max(0,streetY); R(0,sy2,W,Math.max(0,H-sy2),"#0d1016");
-    for(let k=0;k<14;k++) R(k*20, sy2+6, 10,1,"#4a4436");
-    for(let k=0;k<6;k++){ const cx2=k*48+((S.t*6|0)%48); R(cx2,sy2+1,12,3,"#2a3550"); R(cx2+1,sy2+4,10,2,"#1b2233"); }
-    if(streetY>-4) R(0,sy2-1,W,1,"#4fd6c1");
-  }
-  // off-screen arrows
-  if(cam>0){ ctx.fillStyle="#3a4a5a"; tri(W/2-3,2,0); tri(W/2+3,H-3,Math.PI); }
 }
-function tri(cx,cy,rot){
-  ctx.save(); ctx.translate(cx,cy); ctx.rotate(rot); ctx.beginPath();
-  ctx.moveTo(0,-4); ctx.lineTo(4,3); ctx.lineTo(-4,3); ctx.closePath(); ctx.fill(); ctx.restore();
+
+/* ---------- build preview: drawn in world space, never clipped away ---------- */
+function drawPreview(){
+  const h=S.hover; if(!h) return;
+  const {x,y}=h; const px=GUT+x*CW, py=y*CH;
+  const t=S.tool, cell=F(y)&&F(y).c[x];
+  let ok=false, col="#4fd6c1";
+  if(t==="demolish"){ ok=!!cell&&cell.t!=="empty"&&!cell.locked; col=ok?"#ff6b6b":"#ffb347"; }
+  else if(t==="inspect"){ col="#4fd6c1"; ok=!!cell; }
+  else {
+    ok=!!cell&&cell.t==="empty"&&!cell.locked&&S.money>=def(t).cost&&x<S.width&&y>=BASE&&y<=topY();
+    col=ok?"#4fd6c1":"#ff6b6b";
+  }
+  ctx.save();
+  // soft fill
+  ctx.globalAlpha=.30; ctx.fillStyle=col; ctx.fillRect(px+1,py+2,CW-2,CH-4); ctx.globalAlpha=1;
+  // crisp border
+  ctx.strokeStyle=col; ctx.lineWidth=1/S.zoom;
+  ctx.strokeRect(px+0.5,py+0.5,CW-1,CH-1);
+  // corner ticks
+  ctx.lineWidth=2/S.zoom;
+  const t2=4;
+  ctx.beginPath();
+  ctx.moveTo(px,py+t2); ctx.lineTo(px,py); ctx.lineTo(px+t2,py);
+  ctx.moveTo(px+CW-t2,py); ctx.lineTo(px+CW,py); ctx.lineTo(px+CW,py+t2);
+  ctx.moveTo(px,py+CH-t2); ctx.lineTo(px,py+CH); ctx.lineTo(px+t2,py+CH);
+  ctx.moveTo(px+CW-t2,py+CH); ctx.lineTo(px+CW,py+CH); ctx.lineTo(px+CW,py+CH-t2);
+  ctx.stroke();
+  // ghost of the building
+  if(t!=="demolish"&&t!=="inspect"&&ok) drawCell(t,x,y,0,60,true,px,py+1);
+  if(t==="demolish"&&ok){ ctx.globalAlpha=.5; ctx.fillStyle="#ff6b6b"; ctx.fillRect(px+1,py+2,CW-2,CH-4); ctx.globalAlpha=1; }
+  // out-of-range dims
+  if(y<BASE||y>topY()){
+    ctx.strokeStyle="#ff6b6b"; ctx.lineWidth=1/S.zoom;
+    ctx.beginPath(); ctx.moveTo(px+4,py+3); ctx.lineTo(px+CW-4,py+CH-4);
+    ctx.moveTo(px+CW-4,py+3); ctx.lineTo(px+4,py+CH-4); ctx.stroke();
+  }
+  ctx.restore();
+  // cost tag in screen space so it stays legible at any zoom
+  const sx=w2sX(px), sy=w2sY(py);
+  const lbl=(t==="demolish"?"RAZE $"+Math.round((cell?def(cell.t).cost:0)*0.5):t==="inspect"?(cell&&cell.t!=="empty"?def(cell.t).n:""):def(t).n+" $"+def(t).cost);
+  if(lbl){
+    ctx.font="11px ui-monospace,monospace";
+    const w=ctx.measureText(lbl).width+10;
+    ctx.fillStyle="#05070ce6"; ctx.fillRect(sx+2,sy-CH/2*S.zoom-15,w,15);
+    ctx.fillStyle=col; ctx.textBaseline="top"; ctx.fillText(lbl,sx+7,sy-CH/2*S.zoom-13);
+  }
 }
-function fxOf(x){ return 0; }
-function mix(a,b,t){
-  const pa=[parseInt(a.slice(1,3),16),parseInt(a.slice(3,5),16),parseInt(a.slice(5,7),16)];
-  const pb=[parseInt(b.slice(1,3),16),parseInt(b.slice(3,5),16),parseInt(b.slice(5,7),16)];
-  return "rgb("+pa.map((v,i)=>Math.round(v+(pb[i]-v)*t)).join(",")+")";
+
+/* ---------- expand marker ---------- */
+function drawExpandMark(){
+  const y=topY(), py=y*CH;
+  const ok=canExpand(), sx=w2sX(GUT+S.width*CW+10), sy=w2sY(py);
+  if(sx<-40||sx>CWpx+40) return;
+  ctx.fillStyle=ok?"#4fd6c1":"#3a4a5a";
+  const k=ok?1+((Math.round(S.t*3)%2)):0;
+  for(let i=0;i<4;i++){ ctx.fillRect(sx+i*2,sy+8-i*3-k,10-i*2,2); }
+  ctx.font="10px ui-monospace,monospace"; ctx.fillStyle=ok?"#4fd6c1":"#4a5a6a";
+  ctx.textBaseline="middle"; ctx.fillText(ok?"BUILD UP ▲":"▲",sx+2,sy-6);
 }
-function toast(m){ S.toast=m; S.toastT=2.5; }
+
+/* ---------- main draw ---------- */
+function draw(){
+  if(S.follow){ const ty=topY(); S.camY=Math.max(ty*CH+CH*2,-BASE*CH); camClamp(); }
+  camClamp();
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,CWpx,CHpx);
+  drawSky();
+  ctx.save();
+  ctx.translate(CWpx/2,CHpx/2); ctx.scale(S.zoom,S.zoom); ctx.translate(-S.camX,-S.camY);
+  drawGround();
+  drawFloors();
+  drawEntities();
+  drawExpandMark();
+  drawPreview();
+  ctx.restore();
+  // HUD: minimap + level ruler
+  drawMinimap();
+  drawRuler();
+  drawToast();
+}
+
+/* ruler on the left edge showing where you are in the sky */
+function drawRuler(){
+  const top=topY();
+  ctx.save(); ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.font="9px ui-monospace,monospace"; ctx.textBaseline="middle";
+  const y0=Math.max(BASE,Math.floor(s2wY(0)/CH)), y1=Math.min(top,Math.ceil(s2wY(CHpx)/CH));
+  for(let fy=y0;fy<=y1;fy++){
+    const sy=w2sY(fy*CH+CH/2);
+    ctx.fillStyle=fy===0?"#4fd6c1":fy<0?"#c58af9":"#3d4a60";
+    ctx.fillRect(0,sy,4,1);
+    if(fy%5===0||fy===0||fy===top){ ctx.fillStyle="#5b6a83"; ctx.fillText(fl(fy),7,sy); }
+  }
+  ctx.restore();
+}
+/* minimap: full tower, highlights viewport */
+function drawMinimap(){
+  const h=Math.min(150,Math.max(60,CHpx*0.28)), w=26;
+  const x=CWpx-w-10, y=10;
+  const n=NL(), span=(n-BASE)*CH;
+  ctx.save(); ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle="#05070cd0"; ctx.fillRect(x-2,y-2,w+4,h+4);
+  ctx.strokeStyle="#2c3549"; ctx.strokeRect(x-2.5,y-2.5,w+4,h+4);
+  for(let fy=0;fy<n;fy++){
+    const f=S.floors[fy], yy=y+h-((fy+1-BASE)/n)*h;
+    const fill=Math.min(1,Math.max(0,Math.floor(fy)-BASE+1)/n)*h+1;
+    let occ=0,tot=0;
+    for(const c of f.c){ const d=def(c.t); if(d.cap){occ+=c.occ/d.cap;tot++;} }
+    const full=tot?occ/tot:0;
+    ctx.fillStyle = fy===BASE? "#2a3a52" : "#182030";
+    ctx.fillRect(x,yy,w,Math.max(1,fill));
+    ctx.fillStyle = full>.7?"#4fd6c1":full>.35?"#ffb347":"#3a4a60";
+    ctx.fillRect(x,yy+h*(1-full),w,Math.max(1,h*full));
+  }
+  const vy0=(s2wY(0)/CH-BASE)/n, vy1=(s2wY(CHpx)/CH-BASE)/n;
+  ctx.strokeStyle="#ffb347"; ctx.strokeRect(x+.5,y+h-vy1*h+.5,w-1,Math.max(3,(vy1-vy0)*h));
+  ctx.restore();
+}
+function toast(m){ S.toast=m; S.toastT=2.6; }
 function drawToast(){
-  if(S.toastT>0){ S.toastT-=0.016;
-    ctx.font="6px monospace"; const w=ctx.measureText(S.toast).width+8;
-    ctx.fillStyle="#05070cdd"; ctx.fillRect(4,H-14,w,10);
-    ctx.fillStyle="#ffb347"; ctx.fillText(S.toast,8,H-6.5);
-  }
+  if(S.toastT<=0) return;
+  S.toastT-=1/60;
+  ctx.save(); ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.font="12px ui-monospace,monospace";
+  const w=ctx.measureText(S.toast).width+14;
+  ctx.fillStyle="#05070ce6"; ctx.fillRect(CWpx/2-w/2,CHpx-40,w,20);
+  ctx.fillStyle="#ffb347"; ctx.textBaseline="middle"; ctx.fillText(S.toast,CWpx/2-w/2+7,CHpx-30);
+  ctx.restore();
 }
 
 /* ================= UI ================= */
@@ -575,12 +759,12 @@ function buildPalette(){
   for(const k of ORDER){
     const d=T[k], b=document.createElement("button");
     b.className="b"; b.dataset.k=k;
-    b.innerHTML=d.n+" <i>$"+d.cost+"</i><u>"+(d.cap?d.cap+" cap":"")+(d.gen?" +"+d.gen+" pw":"")+(d.amen?" amen":"")+"</u>";
+    b.innerHTML=d.n+' <i>$'+d.cost+'</i><u>'+(d.cap?d.cap+" cap":"")+(d.gen?" +"+d.gen+" pw":"")+(d.amen?" amen":"")+'</u>';
     b.onclick=()=>sel(k); el.appendChild(b);
   }
   updatePalette();
 }
-function sel(k){ S.tool=k; S.inspect=false; updatePalette(); }
+function sel(k){ S.tool=k; updatePalette(); }
 function updatePalette(){
   for(const b of document.querySelectorAll("#palette .b")){
     b.classList.toggle("sel", b.dataset.k===S.tool);
@@ -593,8 +777,7 @@ document.getElementById("t-demolish").onclick=()=>sel("demolish");
 document.getElementById("t-inspect").onclick=()=>sel("inspect");
 
 function hud(){
-  const m=S.money;
-  document.getElementById("s-money").textContent="$"+Math.floor(m).toLocaleString();
+  document.getElementById("s-money").textContent="$"+Math.floor(S.money).toLocaleString();
   document.getElementById("s-inc").textContent="+"+(S.income||0).toFixed(1);
   document.getElementById("s-up").textContent="-"+(S.upkeep||0).toFixed(1);
   document.getElementById("s-score").textContent=Math.round(S.score||0).toLocaleString();
@@ -616,75 +799,106 @@ function hud(){
   const eb=document.getElementById("expand");
   eb.textContent="BUILD UP ▲  $"+expandCost().toLocaleString()+(canExpand()?"":" (locked)");
   eb.disabled=!canExpand();
+  const sb2=document.getElementById("side");
+  sb2.textContent="WIDEN ▶ $"+widenCost().toLocaleString()+(S.width>=MAXW?" (max)":"");
+  sb2.disabled=S.width>=MAXW||S.money<widenCost();
+  document.getElementById("zval").textContent=Math.round(S.zoom*100)+"%";
   updatePalette();
 }
-function endGame(why,msg){
-  if(S.over)return; S.over={why,msg}; showOverlay();
-}
+function endGame(why,msg){ if(S.over)return; S.over={why,msg}; showOverlay(); }
 function showOverlay(){
   const o=document.getElementById("ovl"), b=document.getElementById("ovlbox");
   if(!S.over){
-    b.innerHTML='<h1>SKYRISERS</h1><div style="color:#7b8aa3;line-height:1.7">Build a tower that never stops.<br>'+
-      'Place <b style="color:#4fd6c1">stairs / elevators</b> in a line, fill floors, keep them <b style="color:#7ee787">happy</b> and '+
-      'the city will let you go higher. Forever.<br><br>'+
-      '<kbd>1</kbd>–<kbd>0</kbd> tools · <kbd>X</kbd> demolish · <kbd>right-click</kbd> raze · <kbd>↑↓</kbd> scroll<br>'+
-      'Start money $2,500. Go make the skyline.</div><br><button class="big" style="max-width:200px" onclick="startGame()">BREAK GROUND</button>';
+    b.innerHTML='<h1>SKYRISERS</h1><div style="color:#7b8aa3;line-height:1.8">An endless tower on a patch of dirt.<br>'+
+      'Line up <b style="color:#4fd6c1">stairs / elevators</b>, fill floors, keep them <b style="color:#7ee787">happy</b>, and the city lets you go higher — forever.<br>'+
+      'Dig <b style="color:#c58af9">basements</b> for storage & generators. Widen the plot as you grow.<br><br>'+
+      '<kbd>1</kbd>–<kbd>0</kbd> tools · <kbd>X</kbd> raze · right-click raze<br>'+
+      '<kbd>wheel</kbd> zoom · <kbd>right-drag</kbd>/<kbd>WASD</kbd> pan · <kbd>↑↓</kbd> floors · <kbd>F</kbd> fit</div><br>'+
+      '<button class="big" style="max-width:220px" onclick="startGame()">BREAK GROUND</button>';
   } else {
-    b.innerHTML='<h1 style="color:#ff6b6b">'+S.over.why+'</h1><div style="color:#cfd8e8;line-height:1.7">'+S.over.msg+
-      '<br><br>Final height: <b style="color:#4fd6c1">'+fl(topY())+'</b> · Floors: '+S.floors.length+
+    b.innerHTML='<h1 style="color:#ff6b6b">'+S.over.why+'</h1><div style="color:#cfd8e8;line-height:1.8">'+S.over.msg+
+      '<br><br>Height: <b style="color:#4fd6c1">'+fl(topY())+'</b> · Footprint: '+S.width+' bays'+
       '<br>Population: '+Math.floor(Object.values(S.pop||{res:0,com:0,tic:0}).reduce((a,b)=>a+b,0))+
-      '<br>Score: <b style="color:#ffb347">'+Math.round(S.score).toLocaleString()+'</b></div>'+
-      '<br><button class="big" style="max-width:200px" onclick="startGame()">REBUILD</button>';
+      '<br>Score: <b style="color:#ffb347">'+Math.round(S.score).toLocaleString()+'</b></div><br>'+
+      '<button class="big" style="max-width:220px" onclick="startGame()">REBUILD</button>';
   }
   o.style.display="flex";
 }
-function startGame(){ newGame(); document.getElementById("ovl").style.display="none"; }
+function startGame(){ newGame(); fitView(); document.getElementById("ovl").style.display="none"; }
 
 /* ================= input ================= */
 function cellAt(ev){
-  const r=cv.getBoundingClientRect();
-  const x=Math.floor(((ev.clientX-r.left)/r.width*W-GUT)/CW);
-  const y=Math.floor(((ev.clientY-r.top)/r.height*H)/CH)+Math.round(S.cam);
-  return {x,y};
+  const wx=s2wX(ev.clientX), wy=s2wY(ev.clientY);
+  return { x:Math.floor((wx-GUT)/CW), y:Math.floor(wy/CH), wx, wy };
 }
+function validCell(c){ return c.x>=0&&c.x<S.width&&c.y>=BASE&&c.y<NL(); }
 cv.addEventListener("mousemove",e=>{
   const c=cellAt(e); S.hover=c;
   const tip=document.getElementById("tip");
-  if(c.x<0||c.x>=COLS||c.y<0||c.y>=S.floors.length){ tip.style.display="none"; return; }
-  const cell=S.floors[c.y].c[c.x], d=def(cell.t);
+  if(!validCell(c)){ tip.style.display="none"; return; }
+  const cell=F(c.y).c[c.x], d=def(cell.t);
   let txt = cell.t==="empty" ? "Empty — floor "+fl(c.y)
     : d.n+"\n"+(d.cap?("Kept: "+cell.occ.toFixed(1)+"/"+d.cap+"   Rent $"+(d.rent*heightMult(c.y)).toFixed(2)+"/unit\n"):"")
       + "Happiness "+Math.round(cell.sat)+"  "+(cell.on?"[powered]":"[NO POWER]")
       + (d.d?"\n"+d.d:"");
-  if(S.tool!=="inspect"&&S.tool!=="demolish"&&cell.t==="empty") txt="Build "+def(S.tool).n+" here — $"+def(S.tool).cost;
+  if(S.tool!=="inspect"&&S.tool!=="demolish"&&cell.t==="empty"&&!cell.locked)
+    txt="Build "+def(S.tool).n+" here — $"+def(S.tool).cost+"\nBay "+(c.x+1)+" · Floor "+fl(c.y);
   tip.textContent=txt; tip.style.display="block";
-  const rr=cv.getBoundingClientRect();
-  let px=e.clientX-rr.left+12, py=e.clientY-rr.top+10;
-  if(px+190>rr.width) px=e.clientX-rr.left-190;
-  if(py+50>rr.height) py=rr.height-54;
+  let px=e.clientX+14, py=e.clientY+12;
+  if(px+200>window.innerWidth) px=e.clientX-206;
+  if(py+60>window.innerHeight) py=e.clientY-70;
   tip.style.left=px+"px"; tip.style.top=py+"px";
 });
 cv.addEventListener("mouseleave",()=>{S.hover=null;document.getElementById("tip").style.display="none";});
+
+let drag=null;
 cv.addEventListener("mousedown",e=>{
-  if(S.over)return;
+  if(S.over) return;
+  if(e.button===1||e.button===2){ drag={x:e.clientX,y:e.clientY,cx:S.camX,cy:S.camY,moved:0,btn:e.button}; e.preventDefault(); return; }
   const c=cellAt(e);
-  if(e.button===2||S.tool==="demolish") demolish(c.y,c.x);
-  else if(S.tool==="inspect"){ const cell=S.floors[c.y]&&S.floors[c.y].c[c.x];
+  if(S.tool==="demolish") demolish(c.y,c.x);
+  else if(S.tool==="inspect"){ const cell=F(c.y)&&F(c.y).c[c.x];
     if(cell) log("Inspect: "+(cell.t==="empty"?"empty":def(cell.t).n+" · "+cell.occ.toFixed(1)+"/"+(def(cell.t).cap||0)+" · hap "+Math.round(cell.sat)), "d"); }
   else place(c.y,c.x,S.tool);
   e.preventDefault();
 });
+addEventListener("mousemove",e=>{
+  if(!drag) return;
+  const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  drag.moved=Math.max(drag.moved,Math.abs(dx)+Math.abs(dy));
+  if(drag.moved>4){
+    S.camX=drag.cx-dx/S.zoom; S.camY=drag.cy-dy/S.zoom; S.follow=false; camClamp();
+    document.getElementById("tip").style.display="none";
+  }
+});
+addEventListener("mouseup",e=>{
+  if(drag&&drag.btn===2&&drag.moved<=4&&!S.over){ const c=cellAt(e); demolish(c.y,c.x); }
+  drag=null;
+});
 cv.addEventListener("contextmenu",e=>e.preventDefault());
-cv.addEventListener("wheel",e=>{ S.cam=Math.max(0,Math.min(Math.max(0,S.floors.length-1),S.cam+Math.sign(e.deltaY))); e.preventDefault();},{passive:false});
+cv.addEventListener("wheel",e=>{
+  if(e.ctrlKey||!e.shiftKey){ setZoom(S.zoom*(e.deltaY<0?1.12:1/1.12), e.clientX, e.clientY); }
+  else { S.camX+=(e.deltaY+e.deltaX)/S.zoom*0.6; S.follow=false; camClamp(); }
+  e.preventDefault();
+},{passive:false});
 
 const keymap={};
-ORDER.forEach(k=>keymap[T[k].key]=k);
+ORDER.forEach(k=>{ if(T[k].key) keymap[T[k].key]=k; });
+const held={};
 addEventListener("keydown",e=>{
-  if(e.key==="ArrowUp"){S.cam=Math.max(0,S.cam-1);e.preventDefault();}
-  else if(e.key==="ArrowDown"){S.cam=Math.min(Math.max(0,S.floors.length-1),S.cam+1);e.preventDefault();}
-  else if(e.key==="x"||e.key==="X") sel("demolish");
+  const k=e.key.toLowerCase();
+  if(k==="arrowup"||k==="w"){ S.camY-=CH; S.follow=false; camClamp(); e.preventDefault(); }
+  else if(k==="arrowdown"||k==="s"){ S.camY+=CH; S.follow=false; camClamp(); e.preventDefault(); }
+  else if(k==="a"){ S.camX-=CW*0.6; S.follow=false; camClamp(); }
+  else if(k==="d"){ S.camX+=CW*0.6; S.follow=false; camClamp(); }
+  else if(k==="x") sel("demolish");
+  else if(k==="q") sel("inspect");
+  else if(k==="f"){ S.follow=false; fitView(); }
+  else if(k==="t"){ S.follow=!S.follow; toast(S.follow?"Camera following the top":"Free camera"); }
+  else if(k==="="||k==="+") setZoom(S.zoom*1.2);
+  else if(k==="-") setZoom(S.zoom/1.2);
   else if(keymap[e.key]) sel(keymap[e.key]);
-  else if(e.key===" "){S.paused=!S.paused;document.getElementById("p-pause").textContent=S.paused?"▶":"❚❚";e.preventDefault();}
+  else if(e.key===" "){ S.paused=!S.paused; document.getElementById("p-pause").textContent=S.paused?"▶":"❚❚"; e.preventDefault(); }
 });
 document.getElementById("p-pause").onclick=e=>{S.paused=!S.paused;e.target.textContent=S.paused?"▶":"❚❚";};
 function spd(v){ S.speed=v; for(const id of ["p-1","p-2","p-4"]) document.getElementById(id).classList.remove("sel");
@@ -692,10 +906,16 @@ function spd(v){ S.speed=v; for(const id of ["p-1","p-2","p-4"]) document.getEle
 document.getElementById("p-1").onclick=()=>spd(1);
 document.getElementById("p-2").onclick=()=>spd(2);
 document.getElementById("p-4").onclick=()=>spd(4);
-document.getElementById("v-top").onclick=()=>{S.cam=Math.max(0,S.floors.length-VIEW);};
-document.getElementById("v-bot").onclick=()=>{S.cam=0;};
-document.getElementById("v-mid").onclick=()=>{S.cam=Math.max(0,Math.round(S.floors.length/2-VIEW/2));};
+document.getElementById("v-top").onclick=()=>{S.follow=false;S.camY=(topY()+2)*CH;camClamp();};
+document.getElementById("v-bot").onclick=()=>{S.follow=false;S.camY=0;camClamp();};
+document.getElementById("v-mid").onclick=()=>{S.follow=false;S.camY=topY()*CH/2;camClamp();};
+document.getElementById("z-in").onclick=()=>setZoom(S.zoom*1.25);
+document.getElementById("z-out").onclick=()=>setZoom(S.zoom/1.25);
 document.getElementById("expand").onclick=doExpand;
+document.getElementById("side").onclick=doWiden;
+document.getElementById("tgl-l").onclick=()=>document.body.classList.toggle("hideL");
+document.getElementById("tgl-r").onclick=()=>document.body.classList.toggle("hideR");
+document.getElementById("tgl-b").onclick=()=>document.body.classList.toggle("hide-both");
 
 /* ================= loop ================= */
 let last=performance.now(), acc=0;
@@ -703,14 +923,13 @@ const DT=0.25;
 function frame(now){
   let dt=Math.min(0.25,(now-last)/1000); last=now;
   if(!S.paused&&!S.over){
-    acc+=dt*S.speed;
-    let guard=0;
-    while(acc>=DT&&guard++<12){ step(DT); acc-=DT; }
+    acc+=dt*S.speed; let guard=0;
+    while(acc>=DT&&guard++<16){ step(DT); acc-=DT; }
   }
-  draw(); drawToast(); hud();
+  if(!S.over){ draw(); hud(); }
   requestAnimationFrame(frame);
 }
-newGame(); buildPalette(); showOverlay(); requestAnimationFrame(frame);
+newGame(); buildPalette(); showOverlay(); fitView(); requestAnimationFrame(frame);
 </script>
 </body>
 </html>
